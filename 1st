@@ -1,0 +1,352 @@
+# In[1]:
+
+
+import random
+
+random.choice(range(100))
+
+
+# In[2]:
+
+
+filename = '/Users/GH/Desktop/Book1.csv'
+import pandas as pd
+content = pd.read_csv(filename, encoding='gb18030')
+content.head()
+
+
+# In[3]:
+
+
+articles = content['comment'].tolist()
+len(articles)
+
+
+# In[4]:
+
+
+import re
+def token(string):
+    return re.findall('\w+',string)
+
+
+# In[5]:
+
+
+from collections import Counter
+import jieba
+
+
+# In[6]:
+
+
+with_jieba_cut = Counter(jieba.cut(articles[378]))
+
+
+# In[7]:
+
+
+with_jieba_cut.most_common()[:10]
+
+
+# In[8]:
+
+
+''.join(token(articles[378]))
+
+
+# In[9]:
+
+
+articles_clean = [''.join(token(str(a)))for a in articles]
+len(articles_clean)
+
+
+# In[10]:
+
+
+with open('article_9k.txt', 'w') as f:
+    for a in articles_clean:
+        f.write(a + '\n')
+
+
+# In[188]:
+
+
+import jieba
+
+def cut(string): return list(jieba.cut(string))
+TOKEN = []
+for i, line in enumerate((open('article_9k.txt'))):
+    if i % 50000 == 0:print(i)
+    ###if i > 10000:break
+    TOKEN += cut(line)
+
+
+# In[149]:
+
+
+from functools import reduce
+
+
+# In[150]:
+
+
+from operator import add, mul
+
+
+# In[151]:
+
+
+reduce(add, [1,2,3,4,5,8])
+
+
+# In[152]:
+
+
+[1,2,3] + [3,43,5]
+
+
+# In[153]:
+
+
+from collections import Counter
+
+
+# In[154]:
+
+
+word_count = Counter(TOKEN)
+
+
+# In[155]:
+
+
+word_count.most_common(100)
+
+
+# In[156]:
+
+
+frequiences = [f for w, f in word_count.most_common(100)]
+
+
+# In[157]:
+
+
+x = [i for i in range(100)]
+
+
+# In[158]:
+
+'''import matplotlib
+
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+
+# In[159]:
+
+
+import matplotlib.pyplot as plt
+
+
+# In[160]:
+
+
+plt.plot(x, frequiences)
+'''
+
+# In[161]:
+
+
+def prob_1(word):
+    return word_count[word] / len(TOKEN)
+
+
+# In[162]:
+
+
+prob_1('我')
+
+
+# In[167]:
+
+
+TOKEN[:10]
+
+
+# In[168]:
+
+
+TOKEN = [str(t) for t in TOKEN]
+
+
+# In[169]:
+
+
+TOKEN_2_GRAM = [''.join(TOKEN[i:i+2]) for i in range(len(TOKEN[:-2]))]
+
+
+# In[170]:
+
+
+TOKEN_2_GRAM[:10]
+
+
+# In[171]:
+
+
+word_count_2 = Counter(TOKEN_2_GRAM)
+
+
+# In[172]:
+
+
+def prob_1(word): return word_count[word] / len(TOKEN)
+
+
+# In[173]:
+
+
+def prob_2(word1, word2):
+    if word1 + word2 in word_count_2: return word_count_2[word1+word2] / len(TOKEN_2_GRAM)
+    else:
+        return 1 / len(TOKEN_2_GRAM)
+
+
+# In[174]:
+
+
+prob_2('我', '看')
+
+
+# In[175]:
+
+
+prob_2('看', '电影')
+
+
+# In[176]:
+
+
+def get_probablity(sentence):
+    words = cut(sentence)
+    sentence_pro = 1
+    for i, word in enumerate(words[:1]):
+        next_ = words[i+1]
+        probability = prob_2(word, next_)
+        sentence_pro *= probability
+    return sentence_pro
+
+
+# In[177]:
+
+
+get_probablity('我喜欢杨紫演的戏')
+
+
+# In[178]:
+
+
+get_probablity('吴京打戏特别棒')
+
+
+# In[179]:
+
+
+get_probablity('我是路人甲')
+
+
+# In[180]:
+
+
+import random
+
+def create_grammar(grammar_str, split='=>', line_split='\n'):
+    grammar = {}
+    for line in grammar_str.split(line_split):
+        if not line.strip():continue
+        exp, stmt = line.split(split)
+        grammar[exp.strip()] = [s.split() for s in stmt.split('|')]
+    return grammar
+
+choice = random.choice
+
+def generate(gram, target):
+    if target not in gram:
+        return target
+    expaned = [generate(gram, t) for t in choice(gram[target])]
+    return ''.join([e if e != '/n' else '\n' for e in expaned if e != 'null'])
+
+
+human = """
+human => 自己 寻找 活动
+自己 => 我 | 俺 | 我们 
+寻找 => 看看 | 找找 | 想找点 
+活动 => 乐子 | 玩的 
+"""
+host = """
+host => 寒暄 报数 询问 业务相关 结尾 
+报数 => 我是 数字 号 , 
+数字 => 单个数字 | 数字 单个数字 
+单个数字 => 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 
+寒暄 => 称谓 打招呼 | 打招呼 
+称谓 => 人称 , 
+人称 => 先生 | 女士 | 小朋友 
+打招呼 => 你好 | 您好 
+询问 => 请问你要 | 您需要 
+业务相关 => 玩玩 具体业务 
+玩玩 => 耍一耍 | 玩一玩 
+具体业务 => 喝酒 | 打牌 | 打猎 | 赌博 
+结尾 => 吗？
+"""
+
+def generate_n(value):
+    for i in range(value):
+        print(generate(gram=create_grammar(host, split='=>'), target='host'))
+        print(generate(gram=create_grammar(human, split='=>'), target='human'))
+
+generate_n(5)
+
+
+# In[181]:
+
+
+simple_grammar = """
+sentence => noun_phrase verb_phrase
+noun_phrase => Article Adj* noun
+Adj* => null | Adj Adj*
+verb_phrase => verb noun_phrase
+Article => 这个 | 那个 | 一个 | 这部
+noun => 导演 | 演员 | 杨紫 | 吴京 | 戏 | 电影 | 历史
+verb => 演 | 演着 | 扮演 | 看 | 说 | 安排 | 打
+Adj => 多彩的 | 漂亮的 | 帅的 | 好的 | 生动的| 高清的
+"""
+
+
+# In[182]:
+
+
+example_grammar = create_grammar(simple_grammar)
+
+
+# In[183]:
+
+
+example_grammar
+
+
+# In[185]:
+
+
+def generate_best(n):
+    for sen in [generate(gram=example_grammar, target='sentence') for i in range(n)]:
+        sentences_p = ['{}, {}'.format(sen, get_probablity(sen))]
+        print(sentences_p)
+    new_sentences_p = sorted(sentences_p, key=lambda x: x[1]) ##排序并没有起作用，为什么呢？
+    best = new_sentences_p[0]
+    return best
+
+
+
+generate_best(10)
